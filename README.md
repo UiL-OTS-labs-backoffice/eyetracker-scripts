@@ -8,5 +8,7 @@ labs that are doing eytracking and want to analyze the data with Fixation.
 These scripts are meant to become a replacement for the older perl scripts
 
 # dependencies
-- python3 
+- python3
 - edf2asc from SR-Research (necessary to convert edf to ascii files)
+- imagemagick mkobtzep makes use of the convert commandline utility
+  from the imagemagick toolkit.
