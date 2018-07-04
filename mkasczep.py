@@ -12,11 +12,12 @@ import edfinfo
 _EDF2ASC = 'edf2asc'
 _EDFINFO = 'edfinfo'
 EDF2ASC = shutil.which(_EDF2ASC)
-EDFINFO = shutil.which(_EDFINFO)
 
 # regular expressions to handle file type
 FTYPE1 = re.compile(r'^((\w+)(-\w+)?)\.(\w+)\.(\d+)\.(\d+)\.edf$')
-FTYPE2 = re.compile(r'/^(\d+)\_(\d+)\_(\d+)\.edf$')
+FTYPE2 = re.compile(r'^(\d+)\_(\d+)\_(\d+)\.edf$')
+
+SKIPFILE_MSG = 'Skipping "{}", because it\'s output "{}" exists.'
 
 def die(msg):
     '''print error message and die unsuccessfully.'''
@@ -78,28 +79,32 @@ def process_filetype2(filename):
 
     info = edfinfo.EyeFileInfo()
     info.parse_file(filename)
-    os.system("edf2asc {}".format(filename))
     fnbase = pathlib.Path(
         "{}_{}{}_{}".format(
             info.experiment,
-            "000" if info.participant == "dummy" else info.participant,
             info.list,
-            info.recording
+            info.recording,
+            "000" if info.participant == "dummy" else info.participant
             )
         )
-    fnasc = fnbase + ".asc"
+    fnasc = fnbase.with_suffix(".asc")
+    if fnasc.exists():
+        print(SKIPFILE_MSG.format(filename, fnasc))
+        return
+
+    os.system("edf2asc {}".format(filename))
 
     print('renaming "{}" to "{}".'.format(raw_asc_fn, fnasc))
-    os.rename(raw_asc_fn, fnasc)
+    os.rename(str(raw_asc_fn), str(fnasc))
 
 
 def process_files(fnlist):
     '''Converts all relevant edf files to there matching ascii versions'''
     for filename in fnlist:
-        if FTYPE1.match(filename):
-            process_filetype1(filename)
-        elif FTYPE2.match(filename):
+        if FTYPE2.match(filename):
             process_filetype2(filename)
+        elif FTYPE1.match(filename): # Probably not longer used.
+            process_filetype1(filename)
         else:
             print('Skipping "{}".'.format(filename))
 
@@ -107,8 +112,6 @@ def main():
     '''runs the program'''
     if not EDF2ASC:
         die("Unable to find {}".format(_EDF2ASC))
-    if not EDFINFO:
-        die("Unable to find {}".format(_EDFINFO))
 
     if len(sys.argv) < 2:
         print_usage()
