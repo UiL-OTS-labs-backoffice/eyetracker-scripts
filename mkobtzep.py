@@ -96,7 +96,7 @@ def create_obt(expname, obtname, words):
     obtdir = Path("./{}".format(expname)) / OBTDIR
     if not obtdir.exists() or not obtdir.is_dir():
         die(INVALID_DIR.format(str(obtdir)))
-    fnout = str(obtdir / ("python_" + obtname + OBT))
+    fnout = str(obtdir / (obtname + OBT))
     with open(fnout, 'wb') as obtfile:
         for fields in words:
             stimnum, condition, nl, ln, wnt, nwl, wnl, \
