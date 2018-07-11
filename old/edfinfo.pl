@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+# edfinfo.pl		Prints information found in EyeLink edf/asc preamble.
+
+use strict;
+use File::Basename;
+
+if ($#ARGV < 0 || $ARGV[0] eq '-h') {
+    print "USAGE:\n";
+    print "    edfinfo [-h] <file> ...\n";
+    print "\n";
+    print "    Prints information found in EyeLink edf or asc file preamble.\n";
+    print "\n";
+    print "ARGUMENTS:\n";
+    print "    -h              show this message and exit\n";
+    print "    <file>          edf or asc file to process\n";
+    exit 0;
+}
+
+my ($n, $fnin, $fnasc, $isedf);
+
+for ($n = 0; $n <= $#ARGV; $n++) {
+    $fnin = $ARGV[$n];
+    if ($fnin =~ /^.*\.edf/) {
+    	$isedf = 1;
+    }
+    elsif ($fnin =~ /^.*\.asc/) {
+    	$isedf = 0;
+    }
+    else {
+	warn "Skipping \"$fnin\" (not an edf or asc file).\n";
+	next;
+    }
+    if (-f $fnin) {
+    	if ($isedf) {
+	    my $basename = basename($fnin, '.edf');
+	    unlink "/tmp/$basename.asc";
+	    system "edf2asc -y -p /tmp $fnin >/dev/null 2>&1";
+	    $fnasc = "/tmp/$basename.asc";
+	}
+	else {
+	    $fnasc = $fnin;
+	}
+	if (open F, $fnasc) {
+	    print "$fnin:\n";
+	    while (<F>) {
+    	    	if ($_ =~ /^\*\* DATE: (.*)/) {
+	    	    print "  date:\t\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* TYPE: (.*)/) {
+	    	    print "  type:\t\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* VERSION: (.*)/) {
+	    	    print "  version:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* SOURCE: (.*)/) {
+	    	    print "  source:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* (EYELINK .*)/) {
+	    	    print "  eyelink:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* CAMERA: (.*)/) {
+	    	    print "  camera:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* SERIAL NUMBER: (.*)/) {
+	    	    print "  serial number:\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* CAMERA_CONFIG: (.*)/) {
+	    	    print "  camera config:\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* RECORDED BY: (.*)/) {
+	    	    print "  recorded by:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* EXPERIMENT: (.*)/) {
+	    	    print "  experiment:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* RESEARCHER: (.*)/) {
+	    	    print "  researcher:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* PARTICIPANT: (.*)/) {
+	    	    print "  participant:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* SESSION: (.*)/) {
+	    	    print "  session:\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* LIST: (.*)/) {
+	    	    print "  list:\t\t\t$1\n";
+		}
+    	    	elsif ($_ =~ /^\*\* RECORDING: (.*)/) {
+	    	    print "  recording:\t\t$1\n";
+		}
+    	    	last if ($_ =~ /^MSG/);
+	    }
+	    close F;
+    	    unlink $fnasc if $isedf;
+	}
+	else {
+	    warn "Unable to open \"$fnasc\".\n"
+	}
+    }
+    else {
+	warn "Unable to open \"$fnin\".\n"
+    }
+}

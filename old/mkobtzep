@@ -1,0 +1,157 @@
+#!/usr/bin/env perl
+# mkobtzep
+
+use strict;
+use warnings;
+
+use File::Which;
+
+my $convert = "convert";
+
+# check first whether convert is installed
+if (!which($convert)) {
+    die "Unable to find the convert program from imagemagick suite.\n";
+}
+
+if ($#ARGV != 1) {
+    print "USAGE:\n";
+    print "    mkobtzep <expname> <listnumber>\n";
+    exit 0;
+}
+
+my ($expname, $listnumber, $fnin1, $fnin, $fnout);
+my ($stimnum, $condition, $planame, $word);
+
+$expname = $ARGV[0];
+$listnumber = $ARGV[1];
+
+$fnin1 = "$expname/obt/objects$listnumber.csv";
+
+$fnin = $fnin1;
+if (! -f $fnin) {
+    die "No \"$fnin1\" present. Please run all lists of your experiment in " .
+    "preparing mode with participant \"nosweat\" to generate obt info.\n";
+}
+
+# $fnout = "";
+
+open(IFILE, $fnin) || die "Unable to open \"$fnin\".\n";
+
+if (!-d $expname) {
+    print "Creating \"$expname\".\n";
+    mkdir $expname;
+}
+if (!-d "$expname/dat") {
+    print "Creating \"$expname/dat\".\n";
+    mkdir "$expname/dat";
+}
+if (!-d "$expname/obt") {
+    print "Creating \"$expname/obt\".\n";
+    mkdir "$expname/obt";
+}
+if (!-d "$expname/img") {
+    print "Creating \"$expname/img\".\n";
+    mkdir "$expname/img";
+}
+if (!-d "$expname/result") {
+    print "Creating \"$expname/result\".\n";
+    mkdir "$expname/result";
+}
+
+$stimnum=99999999;
+my $prevstimnum="99999999999";
+$condition="woierujshcuiwertyahg";
+my $prevcondition="woieruliuhuhjshcuiwertyahg";
+
+
+while (<IFILE>) {
+    next if /^#+/;
+    next if /^id.*$/;
+
+    if (/^(\d+);(\D+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(.+)\n$/) {
+    	my $currentline=$_;
+	($stimnum, $condition, my $nl, my $ln, my $wnt, my $nwl, my $wnl, my $wx, my $wy, my $ww, my $wh, my $ll, my $wl, my $word) = split(";", $currentline);
+
+	$word =~ s/^\s+//;
+	chomp $word;
+	$word =~ s/\r//g;
+	
+	if (!($prevstimnum eq $stimnum && $prevcondition eq $condition)) {
+    	    $prevstimnum="$stimnum";
+	    $prevcondition="$condition"; 
+
+    	    if (!($prevstimnum eq "99999999" || $stimnum eq "99999999")) {
+    	    	$planame = sprintf("%s%03d", $condition, $stimnum);
+		close(OFILE) if ($fnout);
+		$fnout = "$expname/img/$planame.bmp";
+
+    	    	if (-f "$expname/img/$planame.png") {
+	    	    print "Creating $fnout...\n";
+		    system "convert $expname/img/$planame.png $fnout";
+		    unlink "$planame.png";
+		}
+		elsif (-f "$expname/img/$planame.miff") {
+	  	    print "Creating $fnout...\n";
+		    system "convert $planame.miff $fnout";
+		    unlink "$planame.miff";
+		}
+		else {
+	    	    warn "No \"$planame.{bmp|png|miff}\" found.\n";
+		}
+
+		$fnout = "$expname/obt/$planame.obt";
+		open OFILE, ">$fnout"  || die "Unable to open \"$fnout\".\n";
+		print "Creating $fnout...\n";
+    	    }
+	}
+
+	printf OFILE "%-23s %2d %3d %3d %4d %4d %3d %3d %3d %4d %4d %4d %4d %3d %3d\r\n", 
+	    $word, 	# object
+	    $wl, 	# object length
+	    $wnl+1,	# object number in line
+	    $nwl,	# number of objects in line
+	    $ll,	# line length
+	    $wnt+1,	# object number in text
+	    $ln+1,	# line number
+	    $nl,	# number of lines in text
+	    $stimnum,	# stimulus number
+	    $wx,	# object x
+	    $wy,	# object y
+	    $wx+$ww,	# object x + object width
+	    $wy+$wh,	# object y + object height
+	    0,		# object code
+	    0;		# object position code
+    }
+}
+
+close(OFILE) if ($fnout);
+close(IFILE);
+
+__END__
+#	$stimnum = $1;
+#	$condition = $2;        
+#	 my $nl   = $3;
+#        my $ln   = $4;
+#        my $wnt  = $5;
+#        my $nwl  = $6;
+#        my $wnl  = $7;
+#        my $wx   = $8;
+#        my $wy   = $9;
+#        my $ww   = $10;
+#        my $wh   = $11;
+#        my $ll   = $12;
+#        my $wl   = $13;
+#        my $word = $14;
+
+        # $3  = numer of lines
+        # $4  = line number
+        # $5  = word number in text
+        # $6  = number of words in line
+        # $7  = word number in line
+        # $8  = word x (of upper-left corner)
+        # $9  = word y (of upper-left corner)
+        # $10  = word width (includes any leading and/or trailing spacing)
+        # $11 = word height
+        # $12 = line length (excludes leading and/or trailing spaces)
+        # $13 = word length (excludes leading and/or trailing spaces)
+        # $14 = word text (includes any leading and/or trailing spacing)

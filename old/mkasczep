@@ -1,0 +1,118 @@
+#!/usr/bin/env perl
+# mkasczep
+
+use strict;
+use warnings;
+use File::Which;
+
+#dependencies for mkasczep
+my $edf2asc = "edf2asc";
+my $edfinfo = "edfinfo";
+
+if (!which($edf2asc)) {
+    die "Unable to find $edf2asc quitting.\n";
+}
+
+if (!which($edfinfo)) {
+    die "Unable to find $edfinfo quitting.\n";
+}
+
+if ($#ARGV < 0) {
+    print "USAGE:\n";
+    print "    mkasczep <edf-file> ...\n";
+    exit 0;
+}
+
+my ($n, $fnin, $fnout, $fnasc);
+my ($fullexpname, $expname, $listname, $blocknum, $subjectnum);
+
+for ($n = 0; $n <= $#ARGV; $n++) {
+    $fnin = $ARGV[$n];
+    if ($fnin =~ /^((\w+)(-\w+)?)\.(\w+)\.(\d+)\.(\d+)\.edf$/) {
+        $fullexpname = $1;
+        $expname = $2;
+        $listname = $4;
+        $blocknum = $5;
+        $subjectnum = $6;
+        $fnout = "${fullexpname}_$listname${blocknum}_$subjectnum.edf";
+        $fnasc = "${fullexpname}_$listname${blocknum}_$subjectnum.asc";
+        if (!-d $expname) {
+            print "Creating \"$expname\".\n";
+            mkdir $expname;
+        }
+        if (!-d "$expname/dat") {
+            print "Creating \"$expname/dat\".\n";
+            mkdir "$expname/dat";
+        }
+        if (!-d "$expname/obt") {
+            print "Creating \"$expname/obt\".\n";
+            mkdir "$expname/obt";
+        }
+        if (!-d "$expname/pla") {
+            print "Creating \"$expname/pla\".\n";
+            mkdir "$expname/pla";
+        }
+        if (!-d "$expname/result") {
+            print "Creating \"$expname/result\".\n";
+            mkdir "$expname/result";
+        }
+        print "Moving \"$fnin\" to \"$expname/dat/$fnout\".\n";
+        rename $fnin, "$expname/dat/$fnout";
+        
+        # error checking doesn't work here... edf2asc doesn't return 0
+        # on succesfull exit...
+        system ("edf2asc $expname/dat/$fnout");
+    }
+    elsif ($fnin =~ /^(\d+)\_(\d+)\_(\d+)\.edf$/) {
+        #compose filename without extension
+        my($fnnoext)= $fnin;
+        $fnnoext =~ s/\.edf//;
+        my($rawascfn)="$fnnoext" . ".asc";
+
+        # convert to asc // note that unfortunately edf2asc doesn't return
+        # 0 on succesful exit.
+        system("edf2asc $fnin");
+        # would be preferred but doesnt work since edf2asc never returns 0...
+        # system("edf2asc $fnin") == 0 or
+        #        die "Unable to execute edf2asc on $fnin exitstatus = $?\n";
+
+        #write edf header to file
+        system("edfinfo $fnin > edfinfo.txt") == 0 or
+                die "unable to execute edfinfo on $fnin exitstatus $?\n";
+
+        #open edf header file	      
+        open EDFINFO, "edfinfo.txt" or die $!;
+        while (<EDFINFO>) {
+        #build filename that Fixation can use
+            if ($_ =~ /.*experiment:\t+(.*)/) {
+                $fullexpname=$1;
+                $expname = substr $fullexpname, 0, 3;
+            }
+            elsif ($_ =~ /.*participant:\t+[A-Za-z]*(\d.*)/) {
+                $subjectnum=$1;
+            }
+            elsif ($_ =~ /.*participant:\t+dummy/) {
+                $subjectnum="000";
+            }
+            elsif ($_ =~ /.*list:\t+(.*)/) {
+                $listname=$1;
+            }
+            elsif ($_ =~ /.*recording:\t+(.*)/) {
+                $blocknum=$1;
+            }
+        }
+        close(EDFINFO);
+        $fnout = "${fullexpname}_$listname${blocknum}_$subjectnum.edf";
+        $fnasc = "${fullexpname}_$listname${blocknum}_$subjectnum.asc";
+
+        #print "Renaming \"$fnin\" to \"$fnout\".\n";
+        #rename $fnin, "$fnout";
+        print "Renaming \"$rawascfn\" to \"$fnasc\".\n";	
+        rename $rawascfn, "$fnasc";    
+        system ("rm edfinfo.txt") == 0 or die "Unable to remove edfinfo.txt\n";
+    }
+    else {
+        print "Skipping \"$fnin\".\n";
+    }
+}
+
