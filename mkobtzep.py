@@ -14,8 +14,6 @@ PROG_DESCRIPTION = (
     "Fixation understands. Additionally it generates the object files necessary "
     "for analysis with fixation."
     )
-CONVERT = 'convert'
-CONVERT_TOOL = shutil.which(CONVERT)
 
 DATADIR = "dat"
 OBTDIR = "obt"
@@ -168,10 +166,6 @@ def process_file(expname, listnum):
 
 def main():
     '''The main function'''
-    if not CONVERT_TOOL:
-        die("{} is unable to locate the {} utility".format(
-            sys.argv[0], CONVERT)
-           )
     expname, listnumber = parse_arguments()
     process_file(expname, listnumber)
 
