@@ -7,6 +7,7 @@ import shutil
 import os
 import os.path
 import pathlib
+import argparse as ap
 import edfinfo
 
 _EDF2ASC = 'edf2asc'
@@ -19,16 +20,15 @@ FTYPE2 = re.compile(r'^(\d+)\_(\d+)\_(\d+)\.edf$')
 
 SKIPFILE_MSG = 'Skipping "{}", because it\'s output "{}" exists.'
 
+PROGNAME = os.path.basename(sys.argv[0])
+PROGDESC = "translate .edf files to their ascii counterpart."
+
+VERBOSE = False
+
 def die(msg):
     '''print error message and die unsuccessfully.'''
     print(msg, file=sys.stderr)
     exit(1)
-
-def print_usage():
-    '''Prints how to use the mkasczep function'''
-    print("USAGE:")
-    print("    mkasczep <edf-file> ...")
-    exit(0)
 
 def process_filetype1(filename):
     '''Process filetype1
@@ -89,7 +89,8 @@ def process_filetype2(filename):
         )
     fnasc = fnbase.with_suffix(".asc")
     if fnasc.exists():
-        print(SKIPFILE_MSG.format(filename, fnasc))
+        if VERBOSE:
+            print(SKIPFILE_MSG.format(filename, fnasc))
         return
 
     os.system("edf2asc {}".format(filename))
@@ -106,17 +107,50 @@ def process_files(fnlist):
         elif FTYPE1.match(filename): # Probably not longer used.
             process_filetype1(filename)
         else:
-            print('Skipping "{}".'.format(filename))
+            print('Skipping "{}": unknown filetype.'.format(filename))
+
+def parse_cmd_arguments():
+    '''Parses the command line arguments'''
+    aparser = ap.ArgumentParser(PROGNAME, description=PROGDESC)
+    aparser.add_argument(
+        'edffiles',
+        nargs='*',
+        help=('edf-files to process these are overwritten when -g or '
+              '--glob is also specified')
+        )
+    aparser.add_argument(
+        '-g',
+        '--glob',
+        help='glob (scan) working directory for .edf files',
+        action='store_true'
+        )
+    aparser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Makes the output a bit more verbose.'
+        )
+    args = aparser.parse_args()
+    files = args.edffiles if args.edffiles else []
+    if args.glob:
+        files = [str(i) for i in pathlib.Path('.').glob('*.edf')]
+    if args.verbose:
+        global VERBOSE
+        VERBOSE = True
+    return files
+
 
 def main():
     '''runs the program'''
     if not EDF2ASC:
         die("Unable to find {}".format(_EDF2ASC))
 
-    if len(sys.argv) < 2:
-        print_usage()
+    files = parse_cmd_arguments()
+    if files:
+        process_files(files)
+    else:
+        print("No input exiting")
 
-    process_files(sys.argv[1:])
 
 if __name__ == "__main__":
     main()
