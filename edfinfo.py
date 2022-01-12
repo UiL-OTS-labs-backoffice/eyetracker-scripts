@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 
+'''edfinfo provides some basic information about edf files'''
+
 import re
 import os.path
+
+_PROGRAM_NAME = 'edfinfo'
+_DESCRIPTION = '''edfinfo provides some helpfull information about SR-Reseach/Eyelink
+edf files (.edf)'''
 
 
 def is_edf(fn):
@@ -17,19 +23,6 @@ def is_eytracker_fn(fn):
     file False otherwise.
     '''
     return is_asc(fn) or is_edf(fn)
-
-def print_usage():
-    '''Print the usage of this program and exit'''
-    print("USAGE:")
-    print("    edfinfo [-h] <file> ...")
-    print("")
-    print("    Prints information found in EyeLink edf or asc file preamble.")
-    print("")
-    print("ARGUMENTS:")
-    print("    -h              show this message and exit")
-    print("    <file>          edf or asc file to process")
-    exit(0);
-
 
 class NotAnEyetrackerFile(Exception):
     ''' Raised by EdfInfo when it thinks it is parsing an invalid file '''
@@ -137,7 +130,7 @@ class EyeFileInfo:
                 if obj:
                     self.participant = obj.group(2)
                     continue
-                obj = self.RE_SESSION.match(line)
+                obj = selsys.argv[1:]f.RE_SESSION.match(line)
                 if obj:
                     self.session = obj.group(2)
                     continue
@@ -197,18 +190,20 @@ class EyeFileInfo:
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2 or sys.argv[1] == "-h":
-        print_usage()
-    else:
-        for fn in sys.argv[1:]:
-            if is_eytracker_fn(fn):
-                info = EyeFileInfo()
-                info.parse_file(fn)
-                print("{}:".format(fn))
-                print(str(info))
-            else:
-                print(
-                    "Skipping \"{}\" (not an edf or asc file).".format(fn),
-                    file=sys.stderr
-                    )
+    import argparse as ap
+
+    parser = ap.ArgumentParser(_PROGRAM_NAME, description=_DESCRIPTION)
+    parser.add_argument('input_files', nargs='+', help="The input .edf file's")
+    args = parser.parse_args()
+    for fn in args.input_files:
+        if is_eytracker_fn(fn):
+            info = EyeFileInfo()
+            info.parse_file(fn)
+            print("{}:".format(fn))
+            print(str(info))
+        else:
+            print(
+                "Skipping \"{}\" (not an edf or asc file).".format(fn),
+                file=sys.stderr
+                )
 
