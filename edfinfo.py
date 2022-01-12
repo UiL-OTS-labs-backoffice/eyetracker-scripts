@@ -20,14 +20,14 @@ def is_eytracker_fn(fn):
 
 def print_usage():
     '''Print the usage of this program and exit'''
-    print("USAGE:\n")
-    print("    edfinfo [-h] <file> ...\n")
-    print("\n")
-    print("    Prints information found in EyeLink edf or asc file preamble.\n")
-    print("\n")
-    print("ARGUMENTS:\n")
-    print("    -h              show this message and exit\n")
-    print("    <file>          edf or asc file to process\n")
+    print("USAGE:")
+    print("    edfinfo [-h] <file> ...")
+    print("")
+    print("    Prints information found in EyeLink edf or asc file preamble.")
+    print("")
+    print("ARGUMENTS:")
+    print("    -h              show this message and exit")
+    print("    <file>          edf or asc file to process")
     exit(0);
 
 
