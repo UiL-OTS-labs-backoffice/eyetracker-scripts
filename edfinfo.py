@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-'''edfinfo provides some basic information about edf files'''
+"""edfinfo provides some basic information about edf files"""
 
 import re
 import os.path
@@ -12,8 +12,8 @@ import pathlib
 from typing import List
 
 _PROGRAM_NAME = 'edfinfo'
-_DESCRIPTION = '''edfinfo provides some helpfull information about SR-Reseach/Eyelink
-edf files (.edf)'''
+_DESCRIPTION = """edfinfo provides some helpfull information about SR-Reseach/Eyelink
+edf files (.edf)"""
 
 _EDF2ASC = 'edf2asc'
 _HAVE_EDF2ASC = shutil.which(_EDF2ASC) != None
@@ -21,28 +21,29 @@ MSG = "MSG"
 
 
 def is_edf(fn:str):
-    '''Returns whether or not the file is a edf file'''
+    """Returns whether or not the file is a edf file"""
     return os.path.splitext(fn)[1] == ".edf"
 
 def is_asc(fn:str):
-    '''Returns whether or not the file is a asc file'''
+    """Returns whether or not the file is a asc file"""
     return os.path.splitext(fn)[1] == ".asc"
 
 def is_eytracker_fn(fn:str):
-    '''Returns True if edfinfo should think the file is a valid eyetracker
+    """Returns True if edfinfo should think the file is a valid eyetracker
     file False otherwise.
-    '''
+    """
     return is_asc(fn) or is_edf(fn)
 
 class NotAnEyetrackerFile(Exception):
-    ''' Raised by EdfInfo when it thinks it is parsing an invalid file '''
+    """ Raised by EdfInfo when it thinks it is parsing an invalid file """
 
 class EyeFileInfo:
-    '''
+    """
     Obtains general info about a eyelink data file (.edf file).
-    '''
+    """
 
     RE_START        = r'^(\*\* )?'
+    RE_MSG_START    = r'^(MSG\s+\d+\s+)'
 
     RE_DATE         = re.compile(RE_START + r'DATE: (.*)')
     RE_TYPE         = re.compile(RE_START + r'TYPE: (.*)')
@@ -59,6 +60,15 @@ class EyeFileInfo:
     RE_SESSION      = re.compile(RE_START + r'SESSION: (.*)')
     RE_LIST         = re.compile(RE_START + r'LIST: (.*)')
     RE_RECORDING    = re.compile(RE_START + r'RECORDING: (.*)')
+
+    # These are added because Zep-2 output this info in messages instead of preamble
+    RE_M_RECORDED_BY  = re.compile(RE_MSG_START + r'RECORDED BY:(.*)')
+    RE_M_EXPERIMENT   = re.compile(RE_MSG_START + r'EXPERIMENT:(.*)')
+    RE_M_RESEARCHER   = re.compile(RE_MSG_START + r'RESEARCHER:(.*)')
+    RE_M_PARTICIPANT  = re.compile(RE_MSG_START + r'PARTICIPANT:(.*)')
+    RE_M_SESSION      = re.compile(RE_MSG_START + r'SESSION:(.*)')
+    RE_M_LIST         = re.compile(RE_MSG_START + r'LIST:(.*)')
+    RE_M_RECORDING    = re.compile(RE_MSG_START + r'RECORDING:(.*)')
 
     # If the next two regexes match we've parsing of eyefileinfo
     # should be completed.
@@ -83,85 +93,123 @@ class EyeFileInfo:
         self.recording      = ""
 
     def is_complete(self):
-        '''Determines whether all attributes are set to there final
-        value'''
+        """Determines whether all attributes are set to there final
+        value"""
         for key, value in self.__dict__.items():
             if not value:
                 return False
         return True
 
-    def _parse_lines(self, lines:List[str]):
-        '''Parses lines and fill out the relevant data on self'''
+    def _parse_preamble(self, lines:List[str]):
+        """Parses the preable of and edf file and fills out
+        The required attributes on self
+
+        Note in Zep-2 some of these variables have been moved
+        from the preable to the MSG's in the actual data.
+        hence, some deeper parsing is neccessary. Used
+        EdfInfo.is_complete() to check whether additional info
+        should be obtained from the file.
+        """
         for line in lines:
-            obj = self.RE_DATE.match(line)
-            if obj:
+            if obj:= self.RE_DATE.match(line):
                 self.date = obj.group(2)
                 continue
-            obj = self.RE_TYPE.match(line)
-            if obj:
+            
+            if obj:= self.RE_TYPE.match(line):
                 self.type= obj.group(2)
                 continue
-            obj = self.RE_VERSION.match(line)
-            if obj:
+            
+            if obj:= self.RE_VERSION.match(line):
                 self.version= obj.group(2)
                 continue
-            obj = self.RE_SOURCE.match(line)
-            if obj:
+            
+            if obj:= self.RE_SOURCE.match(line):
                 self.source= obj.group(2)
                 continue
-            obj = self.RE_EYELINK.match(line)
-            if obj:
+            
+            if obj:= self.RE_EYELINK.match(line):
                 self.eyelink= obj.group(2)
                 continue
-            obj = self.RE_CAMERA.match(line)
-            if obj:
+            
+            if obj:= self.RE_CAMERA.match(line):
                 self.camera= obj.group(2)
                 continue
-            obj = self.RE_SERIAL.match(line)
-            if obj:
+            
+            if obj:= self.RE_SERIAL.match(line):
                 self.serial= obj.group(2)
                 continue
-            obj = self.RE_CAMERA_CONF.match(line)
-            if obj:
+            
+            if obj:= self.RE_CAMERA_CONF.match(line):
                 self.camera_conf = obj.group(2)
                 continue
-            obj = self.RE_RECORDED_BY.match(line)
-            if obj:
+            
+            if obj:= self.RE_RECORDED_BY.match(line):
                 self.recorded_by = obj.group(2)
                 continue
-            obj = self.RE_EXPERIMENT.match(line)
-            if obj:
+            
+            if obj:= self.RE_EXPERIMENT.match(line):
                 self.experiment = obj.group(2)
                 continue
-            obj = self.RE_RESEARCHER.match(line)
-            if obj:
+            
+            if obj:= self.RE_RESEARCHER.match(line):
                 self.researcher = obj.group(2)
                 continue
-            obj = self.RE_PARTICIPANT.match(line)
-            if obj:
+            
+            if obj:= self.RE_PARTICIPANT.match(line):
                 self.participant = obj.group(2)
                 continue
-            obj = self.RE_SESSION.match(line)
-            if obj:
+            
+            if obj:= self.RE_SESSION.match(line):
                 self.session = obj.group(2)
                 continue
-            obj = self.RE_LIST.match(line)
-            if obj:
+            
+            if obj:= self.RE_LIST.match(line):
                 self.list = obj.group(2)
                 continue
-            obj = self.RE_RECORDING.match(line)
-            if obj:
+            
+            if obj:= self.RE_RECORDING.match(line):
                 self.recording = obj.group(2)
                 continue
+    
+    def _parse_msg_lines(self, lines:List[str]):
+        """Parses the messages to collect info
+        about the experiment, researcher, participant,
+        session, list and recording info.
 
+        If information was already found in the preamble
+        it's overwritten, hence the messages are treated
+        as leading.
+        """
+        for line in lines:
+            if obj := self.RE_M_RECORDED_BY.match(line):
+                self.recording = obj.group(2)
+
+            if obj := self.RE_M_EXPERIMENT.match(line):
+                self.experiment = obj.group(2)
+
+            if obj := self.RE_M_RESEARCHER.match(line):
+                self.researcher = obj.group(2)
+
+            if obj := self.RE_M_PARTICIPANT.match(line):
+                self.participant = obj.group(2)
+
+            if obj := self.RE_M_SESSION.match(line):
+                self.session = obj.group(2)
+
+            if obj := self.RE_M_LIST.match(line):
+                self.list= obj.group(2)
+
+            if obj := self.RE_M_RECORDING.match(line):
+                self.recording = obj.group(2)
+    
     
     def parse_file(self, fn:str):
-        '''Parses the file fn
+        """Parses the file fn
         @fn a valid eyetracker file
 
         Raises NotAnEyetrackerFile when we think it is not an eyetracker
         file.
-        '''
+        """
         if not is_eytracker_fn(fn):
             raise NotAnEyetrackerFile()
 
@@ -179,15 +227,15 @@ class EyeFileInfo:
                     break
                 lines.append(line)
 
-        self._parse_lines(lines)
+        self._parse_preamble(lines)
 
         if not self.is_complete():
             if _HAVE_EDF2ASC:
                 self.deep_parse(fn)
 
     def deep_parse(self, fn:str):
-        '''Extracts the .edf file to .asc and inspects whether the eyelink MSG
-        can fill out the missing values'''
+        """Extracts the .edf file to .asc and inspects whether the eyelink MSG
+        can fill out the missing values"""
 
         if not is_eytracker_fn(fn):
             raise ValueError(f"Not a valid filename: \"${fn}\"")
@@ -212,16 +260,16 @@ class EyeFileInfo:
         msg_lines = []
         with open(tempname) as myfile:
             msg_lines = [line.strip() for line in myfile if line[:len(MSG)] == MSG]
-        self._parse_lines(msg_lines)
+        self._parse_msg_lines(msg_lines)
 
         # Cleanup after use
         temppath = pathlib.Path(tempname)
         temppath.unlink()
     
     def __str__(self):
-        '''Return a string representation of self compatible with the
+        """Return a string representation of self compatible with the
         older edfinfo perl script.
-        '''
+        """
         s = ""
         if self.date:
             s += "  date:\t\t\t{}".format(self.date) + os.linesep
