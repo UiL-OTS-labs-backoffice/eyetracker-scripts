@@ -93,7 +93,7 @@ class EyeFileInfo:
         self.recording      = ""
 
     def is_complete(self):
-        """Determines whether all attributes are set to there final
+        """Determines whether all attributes are set to their final
         value"""
         for key, value in self.__dict__.items():
             if not value:
