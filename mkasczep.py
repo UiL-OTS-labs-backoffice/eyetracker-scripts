@@ -80,13 +80,19 @@ def process_filetype2(filename):
 
     info = edfinfo.EyeFileInfo()
     info.parse_file(filename)
+
+    # handle case that participant is dummy or pp123 like
+    pp_id = "000" if info.participant == "dummy" else info.participant
+    pp_id = pp_id[2:] if pp_id[:2].lower() == "pp" else pp_id
+
+    try:
+        if not (0 <= int(pp_id) <= 999):
+            raise ValueError("Participant not in range 0 <= x <= 999")
+    except ValueError as e:
+        exit(f"{filename} hasn't got a valid participant id: {str(e)}")
+
     fnbase = pathlib.Path(
-        "{}_{}{}_{}".format(
-            info.experiment,
-            info.list,
-            info.recording,
-            "000" if info.participant == "dummy" else info.participant,
-        )
+        "{}_{}{}_{}".format(info.experiment, info.list, info.recording, pp_id)
     )
     fnasc = fnbase.with_suffix(".asc")
     if fnasc.exists():
