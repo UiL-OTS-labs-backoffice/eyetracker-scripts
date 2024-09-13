@@ -88,6 +88,8 @@ def process_filetype2(filename):
     try:
         if not (0 <= int(pp_id) <= 999):
             raise ValueError("Participant not in range 0 <= x <= 999")
+        if len(pp_id) != 3:
+            raise ValueError(f'length of "{pp_id}" != 3')
     except ValueError as e:
         exit(f"{filename} hasn't got a valid participant id: {str(e)}")
 
